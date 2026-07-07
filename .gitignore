@@ -7,3 +7,11 @@ credentials.json
 token.json
 npm-debug.log*
 .DS_Store
+backend/.venv/
+__pycache__/
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+.pytest_cache/
+.ruff_cache/

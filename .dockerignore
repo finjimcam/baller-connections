@@ -5,3 +5,5 @@ dist
 build
 temporary screenshots/
 npm-debug.log*
+backend
+screenshot.mjs
