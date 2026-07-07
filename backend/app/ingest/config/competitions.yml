@@ -1,0 +1,31 @@
+# Ingest scope — the single place that defines which squads get pulled.
+# Each competition entry pulls every club's squad for every listed season
+# (Transfermarkt season id = starting year, e.g. 2015 means 2015/16).
+# Expanding the game to more leagues or national teams is a config edit here,
+# followed by: docker compose exec -d backend uv run python -m app.ingest backfill
+
+competitions:
+  - id: GB1
+    name: Premier League
+    seasons: { from: 2000, to: current }
+  - id: ES1
+    name: LaLiga
+    seasons: { from: 2000, to: current }
+  - id: IT1
+    name: Serie A
+    seasons: { from: 2000, to: current }
+  - id: L1
+    name: Bundesliga
+    seasons: { from: 2000, to: current }
+  - id: FR1
+    name: Ligue 1
+    seasons: { from: 2000, to: current }
+
+# Individual clubs or national teams (Transfermarkt models national teams as
+# clubs). Verify the id first via GET /clubs/search/{name} on transfermarkt-api.
+# clubs:
+#   - id: "3299"
+#     name: England
+#     seasons: { from: 2010, to: current }
+#     is_national_team: true
+clubs: []

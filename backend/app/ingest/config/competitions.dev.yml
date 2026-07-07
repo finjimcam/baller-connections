@@ -1,0 +1,9 @@
+# Small seed for end-to-end testing: one league, two seasons (~40 squad requests).
+# Point INGEST_CONFIG at this file in .env while developing.
+
+competitions:
+  - id: GB1
+    name: Premier League
+    seasons: { from: 2023, to: 2024 }
+
+clubs: []
