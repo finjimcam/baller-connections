@@ -51,7 +51,8 @@ class TMClient:
     """Rate-limited client for the self-hosted transfermarkt-api and its image CDN."""
 
     def __init__(self) -> None:
-        self._api = httpx.AsyncClient(base_url=settings.tm_api_base_url, timeout=40)
+        # generous timeout: the scraper occasionally stalls when transfermarkt.de is slow
+        self._api = httpx.AsyncClient(base_url=settings.tm_api_base_url, timeout=90)
         self._cdn = httpx.AsyncClient(timeout=30, headers=CDN_HEADERS, follow_redirects=True)
         self._api_gate = _Gate(settings.tm_min_request_interval)
         self._cdn_gate = _Gate(settings.tm_cdn_min_request_interval)

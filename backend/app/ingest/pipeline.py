@@ -104,8 +104,9 @@ async def _sync_club_lists(
                 continue
             try:
                 payload = await tm.get(f"/competitions/{comp_id}/clubs", {"season_id": season})
-            except TMNotFound:
-                log.warning("competition %s season %s not found, skipping", comp_id, season)
+            except (TMNotFound, TMUnavailable, TMError) as exc:
+                # No meta key is written, so the next run retries this page.
+                log.warning("competition %s season %s failed (%s), skipping", comp_id, season, exc)
                 continue
             clubs = payload.get("clubs", [])
             for club in clubs:
