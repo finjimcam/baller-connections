@@ -37,20 +37,30 @@ You're building and maintaining a web application that runs in **Docker containe
 ---
 
 ## Project Commands
-This is a React + Vite + Tailwind SPA (`baller-connections`). All commands run inside the `frontend` container, never on the host.
-- Start dev server (hot reload on `http://localhost:3000`): `docker compose up -d --build`
-- Lint: `docker compose exec frontend npm run lint`
+This is the Baller Connections game: React + Vite + Tailwind SPA (`frontend`), FastAPI + SQLite game backend (`backend`), and a self-hosted `transfermarkt-api` scraper. All commands run inside containers, never on the host (exception: `node screenshot.mjs`, host-run by design).
+- Start the stack (app on `http://localhost:3000`, backend debug port `http://localhost:8080`): `docker compose up -d --build`
+- Lint frontend: `docker compose exec frontend npm run lint`
+- Lint backend: `docker compose exec backend uv run --no-sync ruff check .`
 - Production build (writes to `dist/` inside the image, `build` stage): `docker compose build --target build`
-- After editing `package.json`, `Dockerfile`, or `docker-compose.yml`: `docker compose up -d --build` to pick up the change — a plain `up -d` reuses the stale image.
+- After editing `package.json`, `backend/pyproject.toml`, a `Dockerfile`, or `docker-compose.yml`: `docker compose up -d --build` — a plain `up -d` reuses the stale image. After changing backend deps, regenerate the lock first: `docker run --rm -v ${PWD}\backend:/app -w /app ghcr.io/astral-sh/uv:python3.12-bookworm-slim uv lock`
+
+### Ingest runbook (data comes from transfermarkt-api, pulled at most daily)
+- Scope lives in `backend/app/ingest/config/competitions.yml` (prod: top-5 leagues since 2000) and `competitions.dev.yml` (1 league × 2 seasons, for testing). `.env`'s `INGEST_CONFIG` picks which one.
+- Full backfill (checkpointed + resumable; ~2h for prod config, ~2min for dev): `docker compose exec -d backend uv run --no-sync python -m app.ingest backfill`, then tail `docker compose exec backend tail -f /data/ingest.log`
+- **After a manual backfill, `docker compose restart backend`** to rebuild the in-memory teammate graph.
+- Current-season refresh (what the in-process scheduler runs daily at `DAILY_REFRESH_HOUR_UTC`): `docker compose exec backend uv run --no-sync python -m app.ingest refresh`
+- Pre-fetch portraits for puzzle-eligible players (~3h, once after prod backfill): `docker compose exec -d backend uv run --no-sync python -m app.ingest enrich-photos --top 2000`
+- transfermarkt-api image is pinned by commit; rebuild command is in the comment in `docker-compose.yml`.
 
 ---
 
 ## Architecture
 - **Dockerfile** is multi-stage: `dev` (Vite dev server, source bind-mounted for hot reload — this is the target `docker-compose.yml` runs), `build` (`npm run build` → static `dist/`), and `runtime` (serves `dist/` via `serve` — only relevant if/when this ships to production; the compose stack never builds this stage).
-- **docker-compose.yml** defines a single `frontend` service on the `dev` target, bind-mounting the repo into `/app` with an anonymous volume over `/app/node_modules` so host and container dependency trees don't collide.
-- **Tailwind** config (`tailwind.config.js`) defines the `pitch` color scale (this project's brand palette per the Anti-Generic Guardrails below — do not fall back to default Tailwind blue/indigo) and the `display`/`sans` font pairing.
+- **docker-compose.yml** defines three services: `frontend` (Vite dev target, bind-mounts repo with an anonymous volume over `/app/node_modules`), `backend` (FastAPI dev target with `--reload`, bind-mounts `./backend`, anonymous volume over `/app/.venv`, named volume `dbdata` at `/data` for SQLite + cached images), and `transfermarkt-api` (pinned pre-built image, in-network only). The browser reaches the backend through the Vite `/api` proxy — no CORS anywhere.
+- **Backend** (`backend/app/`): `ingest/` pulls squads per the YAML config into `squad_memberships` (the teammate-edge source, checkpointed in `sync_state`); `graph.py` holds the in-memory BFS graph (rebuilt at startup and by the daily scheduler); `puzzles.py` picks daily (deterministic via `DAILY_SALT`) and free-play pairs from a market-value fame pool; `lazy_import.py` pulls unknown players live (profile + transfers) so guesses never 500; `images.py` is a lazy caching proxy for portraits/crests (browsers never hit transfermarkt's CDN; zero-byte cache file = permanent "no image").
+- **Tailwind** config (`tailwind.config.js`) defines the `pitch` color scale (this project's brand palette per the Anti-Generic Guardrails below — do not fall back to default Tailwind blue/indigo) and the `display`/`sans` font pairing (Fraunces/Inter variable fonts, self-hosted via @fontsource, imported in `src/main.jsx`).
 - **ESLint** uses flat config (`eslint.config.js`, ESLint 9) — `eslint-plugin-react-hooks` is pinned to `^5.x` since `4.x` doesn't support ESLint 9's peer range.
-- No backend/API yet — `src/App.jsx` is a placeholder; the actual connections-game UI, board/puzzle logic, and any data layer are still to be built.
+- **Game UI** (`src/`): `BubbleBoard` + `hooks/usePhysics` render the chain as d3-force bubbles (elastic cursor attraction, draggable); `hooks/useGame` is the reducer (daily progress persists in localStorage under `bc:daily:<date>`); `GuessInput` is the search combobox; `WinScreen` compares your route to the BFS shortest route.
 
 ---
 
