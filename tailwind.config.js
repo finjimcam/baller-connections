@@ -19,8 +19,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Fraunces"', 'serif'],
-        sans: ['"Inter"', 'sans-serif'],
+        display: ['"Fraunces Variable"', '"Fraunces"', 'serif'],
+        sans: ['"Inter Variable"', '"Inter"', 'sans-serif'],
       },
       boxShadow: {
         soft: '0 1px 2px rgba(10, 36, 25, 0.06), 0 4px 12px rgba(10, 36, 25, 0.08)',
