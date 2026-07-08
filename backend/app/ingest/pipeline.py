@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from ..db import connect, normalize_name
+from ..db import connect
 from ..lazy_import import upsert_player_stub
 from ..tm_client import TMClient, TMError, TMNotFound, TMUnavailable
 
