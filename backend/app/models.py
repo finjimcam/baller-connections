@@ -42,6 +42,9 @@ class SearchResult(BaseModel):
 class ValidateRequest(BaseModel):
     from_id: str
     to_id: str
+    # the puzzle's target player; when set, a successful guess is also checked
+    # against it so the frontend can auto-complete the chain
+    target_id: str | None = None
 
 
 class ValidateResponse(BaseModel):
@@ -49,6 +52,9 @@ class ValidateResponse(BaseModel):
     reason: str | None = None  # set when not connected: not-teammates | player-unknown
     links: list[StintLink] = []
     player: PlayerCard | None = None
+    # shared stints between the guessed player and the puzzle target — non-empty
+    # means this guess completes the chain
+    target_links: list[StintLink] = []
 
 
 class SolutionResponse(BaseModel):

@@ -24,10 +24,10 @@ export const api = {
     request('/free-game', { method: 'POST', body: JSON.stringify({ difficulty }) }),
   search: (q, limit = 8) =>
     request(`/players/search?q=${encodeURIComponent(q)}&limit=${limit}`),
-  validate: (fromId, toId) =>
+  validate: (fromId, toId, targetId) =>
     request('/validate', {
       method: 'POST',
-      body: JSON.stringify({ from_id: fromId, to_id: toId }),
+      body: JSON.stringify({ from_id: fromId, to_id: toId, target_id: targetId }),
     }),
   solution: (startId, targetId) =>
     request(
