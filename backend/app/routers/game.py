@@ -67,6 +67,9 @@ async def validate(body: ValidateRequest, request: Request):
     graph = get_graph()
     tm = request.app.state.tm
     with db() as conn:
+        # Enrich from_id too: it's the puzzle's start player on the first guess of a
+        # chain, which never otherwise passes through ensure_player_known as a to_id.
+        await ensure_player_known(conn, tm, graph, body.from_id)
         to_row = await ensure_player_known(conn, tm, graph, body.to_id)
         if to_row is None:
             return ValidateResponse(connected=False, reason="player-unknown")

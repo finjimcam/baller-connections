@@ -29,10 +29,19 @@ def db():
         conn.close()
 
 
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Additive column migrations for existing databases (no migration framework yet;
+    schema.sql only handles brand-new tables via CREATE TABLE IF NOT EXISTS)."""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(players)")}
+    if "transfers_synced_at" not in columns:
+        conn.execute("ALTER TABLE players ADD COLUMN transfers_synced_at TEXT")
+
+
 def init_db() -> None:
     schema = (Path(__file__).parent / "schema.sql").read_text(encoding="utf-8")
     with db() as conn:
         conn.executescript(schema)
+        _migrate(conn)
 
 
 def normalize_name(name: str) -> str:
