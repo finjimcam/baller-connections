@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS players (
   membership_count  INTEGER NOT NULL DEFAULT 0,
   imported          INTEGER NOT NULL DEFAULT 0,-- 1 = pulled on demand, not part of the seed
   image_url         TEXT,
-  profile_synced_at TEXT,
+  profile_synced_at   TEXT,
+  transfers_synced_at TEXT,                    -- full TM transfer history pulled (covers clubs outside ingest scope)
   image_cached_at   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_players_norm ON players(normalized_name);

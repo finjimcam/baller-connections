@@ -40,7 +40,12 @@ function reducer(state, action) {
       return { ...state, validating: true }
     case 'GUESS_OK': {
       const chain = [...state.chain, { player: action.player, links: action.links }]
-      const won = action.player.id === state.puzzle.target.id
+      let won = action.player.id === state.puzzle.target.id
+      // The guess itself links to the target — auto-complete the chain.
+      if (!won && action.targetLinks?.length) {
+        chain.push({ player: state.puzzle.target, links: action.targetLinks })
+        won = true
+      }
       return { ...state, chain, status: won ? 'won' : 'playing', wrongGuess: null, validating: false }
     }
     case 'GUESS_FAIL':
@@ -118,9 +123,14 @@ export default function useGame() {
       const last = state.chain[state.chain.length - 1].player
       dispatch({ type: 'VALIDATING' })
       try {
-        const result = await api.validate(last.id, candidate.id)
+        const result = await api.validate(last.id, candidate.id, state.puzzle.target.id)
         if (result.connected) {
-          dispatch({ type: 'GUESS_OK', player: result.player, links: result.links })
+          dispatch({
+            type: 'GUESS_OK',
+            player: result.player,
+            links: result.links,
+            targetLinks: result.target_links,
+          })
         } else if (result.reason === 'player-unknown') {
           dispatch({
             type: 'GUESS_FAIL',
@@ -136,7 +146,7 @@ export default function useGame() {
         dispatch({ type: 'GUESS_FAIL', message: err.message })
       }
     },
-    [state.status, state.validating, state.chain],
+    [state.status, state.validating, state.chain, state.puzzle],
   )
 
   return {
