@@ -11,7 +11,7 @@ import sqlite3
 from datetime import date
 from urllib.parse import quote
 
-from .db import normalize_name
+from .db import is_placeholder_club, normalize_name
 from .graph import Graph
 from .tm_client import TMClient, TMError, TMNotFound, TMUnavailable
 
@@ -109,6 +109,10 @@ def _stints_from_transfers(payload: dict) -> list[tuple[str, str, list[int]]]:
         end_d = dated[i + 1][0] if i + 1 < len(dated) else today
         if end_d < start_d:
             continue
+        # Placeholder entries (without club, retired, …) stay in the timeline so
+        # they close the previous club's stint, but never become stints themselves.
+        if is_placeholder_club(club_id, club_name):
+            continue
         stints.append((club_id, club_name, _seasons_between(start_d, end_d)))
     return stints
 
@@ -151,6 +155,10 @@ async def ensure_player_known(
     conn.execute(
         "UPDATE players SET profile_synced_at = datetime('now') WHERE id = ?", (player_id,)
     )
+    # Release the write lock before the (rate-gated, slow) transfers fetch —
+    # holding it across the await starves concurrent requests into
+    # "database is locked" errors.
+    conn.commit()
 
     try:
         transfers = await tm.get(f"/players/{quote(player_id)}/transfers")
